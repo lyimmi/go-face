@@ -2,10 +2,9 @@ package face_test
 
 import (
 	"fmt"
+	"github.com/Kagami/go-face"
 	"log"
 	"path/filepath"
-
-	"github.com/Kagami/go-face"
 )
 
 // Path to directory with models and test images. Here it's assumed it

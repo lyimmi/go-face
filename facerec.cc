@@ -115,10 +115,16 @@ public:
 		return {std::move(rects), std::move(descrs), std::move(shapes)};
 	}
 
-	void SetSamples(std::vector<descriptor>&& samples, std::vector<int>&& cats) {
+  void SetSamples(std::vector<descriptor>&& samples, std::vector<int>&& cats) {
 		std::unique_lock<std::shared_mutex> lock(samples_mutex_);
 		samples_ = std::move(samples);
 		cats_ = std::move(cats);
+	}
+
+  void ResetSamples() {
+		std::unique_lock<std::shared_mutex> lock(samples_mutex_);
+		samples_ = std::move(std::vector<descriptor>());
+		cats_ = std::move(std::vector<int>());
 	}
 
 	int Classify(const descriptor& test_sample, float tolerance) {
@@ -126,11 +132,12 @@ public:
 		return classify(samples_, cats_, test_sample, tolerance);
 	}
 
-    void Config(unsigned long new_size, double new_padding, int new_jittering) {
-        size = new_size;
-        padding = new_padding;
-        jittering = new_jittering;
-    }
+  void Config(unsigned long new_size, double new_padding, int new_jittering) {
+      size = new_size;
+      padding = new_padding;
+      jittering = new_jittering;
+  }
+
 private:
 	std::mutex detector_mutex_;
 	std::mutex net_mutex_;
@@ -235,6 +242,13 @@ void facerec_set_samples(
 	}
 	std::vector<int> cats(c_cats, c_cats + len);
 	cls->SetSamples(std::move(samples), std::move(cats));
+}
+
+void facerec_reset_samples(
+	facerec* rec
+) {
+	FaceRec* cls = (FaceRec*)(rec->cls);
+	cls->ResetSamples();
 }
 
 int facerec_classify(facerec* rec, const float* c_test_sample, float tolerance) {
