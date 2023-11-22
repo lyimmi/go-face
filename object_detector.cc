@@ -6,7 +6,7 @@
 
 using namespace dlib;
 
-typedef scan_fhog_pyramid<pyramid_down<6> > image_scanner_type; 
+typedef scan_fhog_pyramid<pyramid_down<10>> image_scanner_type;
 
 static const size_t RECT_LEN = 4;
 static const size_t DESCR_LEN = 128;
@@ -18,18 +18,34 @@ static const size_t SHAPE_SIZE = SHAPE_LEN * sizeof(long);
 class ObjRec
 {
 public:
-	ObjRec(const char *model)
+	ObjRec(const char *model_dir, int len)
 	{
 		object_detector<image_scanner_type> detector;
-		deserialize(model) >> detector;
-		detector_ = detector;
+		std::vector<object_detector<image_scanner_type>> detectors;
+		
+		std::string dir = model_dir;
+		std::string detector_file = dir + "/detector.svm";
+
+		deserialize(detector_file) >> detector;
+		detectors.push_back(detector);
+
+		if (len > 1)
+		{
+			for (int i = 1; i < len; i++)
+			{
+				detector_file = dir + "/detector" + std::to_string(i) + ".svm";
+				deserialize(detector_file) >> detector;
+				detectors.push_back(detector);
+			}
+		}
+		detectors_ = detectors;
 	}
 	std::vector<rectangle> Recognize(const matrix<rgb_pixel> &img)
 	{
 		std::vector<rectangle> rects;
-		
+
 		std::lock_guard<std::mutex> lock(detector_mutex_);
-		rects = detector_(img);
+		rects = evaluate_detectors(detectors_, img);
 
 		if (rects.size() == 0)
 		{
@@ -43,15 +59,15 @@ public:
 
 private:
 	std::mutex detector_mutex_;
-	object_detector<image_scanner_type> detector_;
+	std::vector<object_detector<image_scanner_type>> detectors_;
 };
 
-objrec *objrec_init(const char *model_dir)
+objrec *objrec_init(const char *model_dir, int len)
 {
 	objrec *rec = (objrec *)calloc(1, sizeof(objrec));
 	try
 	{
-		ObjRec *cls = new ObjRec(model_dir);
+		ObjRec *cls = new ObjRec(model_dir, len);
 		rec->cls = (void *)cls;
 	}
 	catch (serialization_error &e)
@@ -122,4 +138,10 @@ void objrec_free(objrec *rec)
 		}
 		free(rec);
 	}
+}
+
+inline bool file_exists(const std::string &name)
+{
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
 }

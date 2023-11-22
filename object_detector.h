@@ -23,7 +23,7 @@ typedef struct objret {
 	err_code err_code;
 } objret;
 
-objrec* objrec_init(const char* model_dir);
+objrec* objrec_init(const char* model_dir, int len);
 objret* objrec_recognize(objrec* rec, const uint8_t* img_data, int len);
 void objrec_free(objrec* rec);
 

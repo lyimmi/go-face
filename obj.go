@@ -29,10 +29,10 @@ func (rec *ObjRecognizer) Close() {
 
 // NewObjRecognizer returns a new recognizer interface. modelDir points to
 // directory with shape_detector.svm
-func NewObjRecognizer(modelDir string) (rec *ObjRecognizer, err error) {
+func NewObjRecognizer(modelDir string, len int) (rec *ObjRecognizer, err error) {
 	cModelDir := C.CString(modelDir)
 	defer C.free(unsafe.Pointer(cModelDir))
-	ptr := C.objrec_init(cModelDir)
+	ptr := C.objrec_init(cModelDir, C.int(len))
 
 	if ptr.err_str != nil {
 		defer C.objrec_free(ptr)
